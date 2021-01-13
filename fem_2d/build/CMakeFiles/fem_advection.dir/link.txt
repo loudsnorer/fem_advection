@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/c++   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/fem_advection.dir/main.cpp.o CMakeFiles/fem_advection.dir/solve.cpp.o  -o fem_advection 

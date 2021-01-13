@@ -1,0 +1,3 @@
+/Users/fariz/CLionProjects/fem_advection/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/fariz/CLionProjects/fem_advection/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/fariz/CLionProjects/fem_advection/cmake-build-debug/CMakeFiles/fem_advection.dir
