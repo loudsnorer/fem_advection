@@ -18,11 +18,13 @@ using namespace std;
 
 # include "solve.h"
 #define PI 3.14159265
-constexpr int nodes_number_x {4};
-constexpr int nodes_number_y {4};
+constexpr int nodes_number_x {8};
+constexpr int nodes_number_y {8};
 constexpr int nodes_number{ nodes_number_x * nodes_number_y };
 
-// we are considering drichlet BC for simplicity
+#define DBG
+
+// we are considering Dirichlet BC for simplicity
 /* mesh
 T - T - T - T
 |   |   |   |
@@ -52,19 +54,21 @@ x - x - x - x
 x - x - x - x 
 */
 
-
 /* F values 
 x - x - x - x
-| F | F | F |
+|   |   |   |
 x - x - x - x
-| F | F | F |  
+|   |   |   |  
 x - x - x - x
-| F | F | F |
+|   |   |   |
 x - x - x - x 
 */
 
+/* indirection_m: offsets used in the sparse representation of matrix
+*/
 
-
+/* indirection_v: indirections used in the sparse representation to get columns
+*/
 
 double fRand(double i, int i1);
 void create_matrix();
@@ -88,7 +92,7 @@ void write_solutions_to_file();
 
 
 ofstream command_unit;
-string data_filename = "fem_data.3d";
+string data_filename = "fem_data.csv";
 ofstream data_unit;
 
 
@@ -151,20 +155,25 @@ int main() {
 
     std::cout << "Comparing our results with sin(pi * x)" << std::endl;
 
+#ifdef DBG 
     std::cout << "nodex_x: " << std::endl;
     for(int i = 0; i < nodes_number; i++) {
         std::cout << nodes_x[i] << " " << std::endl;
     }
+    std::cout <<std::endl;
 
     std::cout << "nodex_y: " << std::endl;
     for(int i = 0; i < nodes_number; i++) {
         std::cout << nodes_y[i] << " " << std::endl;
     }
+    std::cout <<std::endl;
 
     std::cout << "K: " << std::endl;
     for(int i = 0; i < nodes_number * 9; i++) {
         std::cout << sparseK[i] << " " << std::endl;
     }
+    std::cout <<std::endl;
+
 
     std::cout << "indirections_v: " << std::endl;
     for(int i = 0; i < nodes_number * 9; i++) {
@@ -173,6 +182,7 @@ int main() {
         }
         std::cout << indirections_v[i] << " " << std::endl;
     }
+    std::cout <<std::endl;
 
     std::cout << "indirections_m: " << std::endl;
     for(int i = 0; i < nodes_number * 9; i++) {
@@ -181,18 +191,22 @@ int main() {
         }
         std::cout << indirections_m[i] << " " << std::endl;
     }
+    std::cout <<std::endl;
 
     std::cout << "f: " << std::endl;
     for(int i = 0; i < nodes_number; i++) {
         std::cout << f_xy_2d[i] << " " << std::endl;
     }
+    std::cout <<std::endl;
 
     std::cout << "b: " << std::endl;
     for(int i = 0; i < nodes_number; i++) {
         std::cout << b[i] << " " << std::endl;
     }
-
     std::cout <<std::endl;
+
+#endif
+
 
     // Get ending timepoint
     auto stop_generate = high_resolution_clock::now();
@@ -204,23 +218,55 @@ int main() {
     auto start_solve = high_resolution_clock::now();
     // solution = solve_matrix();
     for(int i = 0; i < nodes_number; i++) {
-        solution_1[i] = 1.0;
+        solution_1[i] = 0.0;
     }
 
-    int num_iters = 10;
+    int num_iters = 100;
 
     // iterations of jacobi
+    double* s1 = solution_1;
+    double* s2 = solution_2; 
+    double* tmp;
     for (size_t it = 0; it < num_iters; it++)
     {
         // iterate through all the rows of the matrix
-        for (size_t i = 0; i < num_iters; i++){
-            // solution_2[i] = 1.0 / sparseK [ i] * ( ) // 
+        /*
+        for (size_t i = 0; i < nodes_number; i++)
+        {
+            s2[i] = 1.0 / sparseK[9 * i + 4] * (b[i] - 
+                (sparseK[9 * i + 0] * s1[indirections_v[9 * i + 0]] + 
+                 sparseK[9 * i + 1] * s1[indirections_v[9 * i + 1]] + 
+                 sparseK[9 * i + 2] * s1[indirections_v[9 * i + 2]] + 
+                 sparseK[9 * i + 3] * s1[indirections_v[9 * i + 3]] + 
+                 sparseK[9 * i + 5] * s1[indirections_v[9 * i + 5]] + 
+                 sparseK[9 * i + 6] * s1[indirections_v[9 * i + 6]] + 
+                 sparseK[9 * i + 7] * s1[indirections_v[9 * i + 7]] + 
+                 sparseK[9 * i + 7] * s1[indirections_v[9 * i + 8]] ) );
         }
+        */
+
+        // simple jacobi solver 
+        // note Dirichlet BC is implied
+        for (size_t idx_i = 1; idx_i < nodes_number_x-1; idx_i++)
+        {
+            for (size_t idx_j = 1; idx_j < nodes_number_y-1; idx_j++)
+            {
+                int i = idx_i*nodes_number_y+idx_j;
+                s2[i] = 1.0 / sparseK[9 * i + 4] * (b[i] - 
+                (sparseK[9 * i + 0] * s1[indirections_v[9 * i + 0]] + 
+                 sparseK[9 * i + 1] * s1[indirections_v[9 * i + 1]] + 
+                 sparseK[9 * i + 2] * s1[indirections_v[9 * i + 2]] + 
+                 sparseK[9 * i + 3] * s1[indirections_v[9 * i + 3]] + 
+                 sparseK[9 * i + 5] * s1[indirections_v[9 * i + 5]] + 
+                 sparseK[9 * i + 6] * s1[indirections_v[9 * i + 6]] + 
+                 sparseK[9 * i + 7] * s1[indirections_v[9 * i + 7]] + 
+                 sparseK[9 * i + 7] * s1[indirections_v[9 * i + 8]] ) );
+            }
+        }
+
+        // swap the buffers
+        tmp = s1; s1=s2; s2=tmp;
     }
-    
-
-
-
 
     // Get ending timepoint
     auto stop_solve = high_resolution_clock::now();
@@ -242,8 +288,16 @@ int main() {
     cout << "Time taken for solving nodes, matrix, vector: "
          << duration_solve.count() << " microseconds" << endl;
 
+#ifdef DBG 
+    std::cout << "solution: " << std::endl;
+    for(int i = 0; i < nodes_number; i++) {
+        std::cout << solution_1[i] << " " << std::endl;
+    }
+    std::cout <<std::endl;
+#endif
+
     //check_solution(solution);
-    // write_solutions_to_file();
+    write_solutions_to_file();
 
     return 0;
 }
@@ -360,7 +414,7 @@ double a_sin_bx (double param1, double param2, double x) {
 //function a * sin (b * x)
 double a_sin_yx (double param1, double param2, double x, double y) {
 
-    double result = param1 * sin (param2 * x * y );
+    double result = param1 * sin (param2 * x ) * sin( param2 * y );
     //std::cout << param1 << " * " << "( sin (" << param2 << " * " << x << ") = " << result << std::endl;
     return result;
 
@@ -690,20 +744,13 @@ double * solve_matrix () {
 
 void write_solutions_to_file() {
 
-    //
-//  Open data file, and write solutions as they are computed.
-//
     data_unit.open ( data_filename.c_str ( ) );
 
+   for (int i = 0; i < nodes_number; i++ ) {
+            data_unit   << nodes_x[i] << " " << nodes_y[i] << " " << solution_1[i] << "\n";
+   }
 
-//    data_unit << "x " << "y " << "velocity" <<"\n";
-//    data_unit << "#coordflag xv" <<"\n";
-    for (int j = 0; j <= nodes_number; j++ )
-    {
-        data_unit << nodes[j + 1]
-                  << " " << solution[j]
-                  << "\n";
-    }
-    data_unit << "\n";
+    data_unit.flush();
+    data_unit.close();
 
 }
