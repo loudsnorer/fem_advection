@@ -70,7 +70,7 @@ double a_sin_bxy(double param1, double param2, double x, double y);
 void create_fxy(double *f);
 
 // FEM function
-void create_sparse_stiffness_matrix(double scalor);
+void create_stencil(double scalor);
 void create_indirections();
 void create_matrix_b(double *b, double *f, double scalor);
 
@@ -92,7 +92,9 @@ double f_xy[nodes_number];
 double b[nodes_number];
 
 // stiffness matrix
-double stiffness_matrix[nodes_number * 9]{};
+//double stiffness_matrix[nodes_number * 9]{};
+// stencil tensor
+double stencil[9]{};
 
 // indirections
 int indirections[nodes_number * 9]{};
@@ -113,7 +115,8 @@ int main()
     create_matrix_b(b, f_xy, scalor_b);
 
     int scalor_K = 1.0;
-    create_sparse_stiffness_matrix(scalor_K);
+    // create_sparse_stiffness_matrix(scalor_K);
+    create_stencil(scalor_K);
     create_indirections();
 
     // cout << "Comparing our results with sin(pi * x)" << endl;
@@ -133,10 +136,10 @@ int main()
     }
     cout << endl;
 
-    cout << "K: " << endl;
-    for (int i = 0; i < nodes_number * 9; i++)
+    cout << "stencil: " << endl;
+    for (int i = 0; i < 9; i++)
     {
-        cout << stiffness_matrix[i] << " " << endl;
+        cout << stencil[i] << " " << endl;
     }
     cout << endl;
 
@@ -189,15 +192,15 @@ int main()
         /*
         for (size_t i = 0; i < nodes_number; i++)
         {
-            s2[i] = 1.0 / stiffness_matrix[9 * i + 4] * (b[i] - 
-                (stiffness_matrix[9 * i + 0] * s1[indirections[9 * i + 0]] + 
-                 stiffness_matrix[9 * i + 1] * s1[indirections[9 * i + 1]] + 
-                 stiffness_matrix[9 * i + 2] * s1[indirections[9 * i + 2]] + 
-                 stiffness_matrix[9 * i + 3] * s1[indirections[9 * i + 3]] + 
-                 stiffness_matrix[9 * i + 5] * s1[indirections[9 * i + 5]] + 
-                 stiffness_matrix[9 * i + 6] * s1[indirections[9 * i + 6]] + 
-                 stiffness_matrix[9 * i + 7] * s1[indirections[9 * i + 7]] + 
-                 stiffness_matrix[9 * i + 7] * s1[indirections[9 * i + 8]] ) );
+            s2[i] = 1.0 / stencil[4] * (b[i] - 
+                (stencil[0] * s1[indirections[9 * i + 0]] + 
+                 stencil[1] * s1[indirections[9 * i + 1]] + 
+                 stencil[2] * s1[indirections[9 * i + 2]] + 
+                 stencil[3] * s1[indirections[9 * i + 3]] + 
+                 stencil[5] * s1[indirections[9 * i + 5]] + 
+                 stencil[6] * s1[indirections[9 * i + 6]] + 
+                 stencil[7] * s1[indirections[9 * i + 7]] + 
+                 stencil[8] * s1[indirections[9 * i + 8]] ) );
         }
         */
 
@@ -208,7 +211,7 @@ int main()
             for (size_t idx_j = 1; idx_j < nodes_number_y - 1; idx_j++)
             {
                 int i = idx_i * nodes_number_y + idx_j;
-                s2[i] = 1.0 / stiffness_matrix[9 * i + 4] * (b[i] - (stiffness_matrix[9 * i + 0] * s1[indirections[9 * i + 0]] + stiffness_matrix[9 * i + 1] * s1[indirections[9 * i + 1]] + stiffness_matrix[9 * i + 2] * s1[indirections[9 * i + 2]] + stiffness_matrix[9 * i + 3] * s1[indirections[9 * i + 3]] + stiffness_matrix[9 * i + 5] * s1[indirections[9 * i + 5]] + stiffness_matrix[9 * i + 6] * s1[indirections[9 * i + 6]] + stiffness_matrix[9 * i + 7] * s1[indirections[9 * i + 7]] + stiffness_matrix[9 * i + 7] * s1[indirections[9 * i + 8]]));
+                s2[i] = 1.0 / stencil[4] * (b[i] - (stencil[0] * s1[indirections[9 * i + 0]] + stencil[1] * s1[indirections[9 * i + 1]] + stencil[2] * s1[indirections[9 * i + 2]] + stencil[3] * s1[indirections[9 * i + 3]] + stencil[5] * s1[indirections[9 * i + 5]] + stencil[6] * s1[indirections[9 * i + 6]] + stencil[7] * s1[indirections[9 * i + 7]] + stencil[8] * s1[indirections[9 * i + 8]]));
             }
         }
 
@@ -294,19 +297,19 @@ void create_matrix_b(double *b, double *f, double scalor)
     }
 }
 
-void create_sparse_stiffness_matrix(double scalor)
+void create_stencil(double scalor)
 {
     for (int i = 0; i < nodes_number; i++)
     {
-        stiffness_matrix[i * 9 + 0] = -1 * scalor;
-        stiffness_matrix[i * 9 + 1] = -1 * scalor;
-        stiffness_matrix[i * 9 + 2] = -1 * scalor;
-        stiffness_matrix[i * 9 + 3] = -1 * scalor;
-        stiffness_matrix[i * 9 + 4] = 8 * scalor;
-        stiffness_matrix[i * 9 + 5] = -1 * scalor;
-        stiffness_matrix[i * 9 + 6] = -1 * scalor;
-        stiffness_matrix[i * 9 + 7] = -1 * scalor;
-        stiffness_matrix[i * 9 + 8] = -1 * scalor;
+        stencil[0] = -1 * scalor;
+        stencil[1] = -1 * scalor;
+        stencil[2] = -1 * scalor;
+        stencil[3] = -1 * scalor;
+        stencil[4] = 8 * scalor;
+        stencil[5] = -1 * scalor;
+        stencil[6] = -1 * scalor;
+        stencil[7] = -1 * scalor;
+        stencil[8] = -1 * scalor;
     }
 }
 
