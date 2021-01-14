@@ -12,8 +12,8 @@ using namespace std;
 using namespace chrono;
 
 #define PI 3.14159265358979323846
-constexpr int nodes_number_x{8};
-constexpr int nodes_number_y{8};
+constexpr int nodes_number_x{1000};
+constexpr int nodes_number_y{1000};
 constexpr int nodes_number{nodes_number_x * nodes_number_y};
 
 // #define DBG

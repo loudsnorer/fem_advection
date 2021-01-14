@@ -3,6 +3,9 @@
 #include <fstream>
 #include <chrono>
 
+#include "jacobi_solver_stencil.h"
+
+
 // solving Uxx+Uyy = F
 // [K] * [solution] = [b]
 // we are considering Dirichlet BC for simplicity
@@ -15,6 +18,7 @@ using namespace chrono;
 constexpr int nodes_number_x{8};
 constexpr int nodes_number_y{8};
 constexpr int nodes_number{nodes_number_x * nodes_number_y};
+constexpr int num_iters = 100;
 
 // #define DBG
 
@@ -107,17 +111,18 @@ int main()
     // Get starting timepoint
     auto start_generate = high_resolution_clock::now();
     
-    create_grid();
 
-    create_fxy(f_xy);
+    create_grid(); // O(N), N = n_x * n_y
+
+    create_fxy(f_xy); // O(N)
 
     int scalor_b = 1.0;
-    create_matrix_b(b, f_xy, scalor_b);
+    create_matrix_b(b, f_xy, scalor_b); // O(N)
 
     int scalor_K = 1.0;
     // create_sparse_stiffness_matrix(scalor_K);
-    create_stencil(scalor_K);
-    create_indirections();
+    create_stencil(scalor_K); // O(9)
+    create_indirections(); // O(9*N)
 
     // cout << "Comparing our results with sin(pi * x)" << endl;
 
@@ -175,51 +180,7 @@ int main()
     // Get starting timepoint
     auto start_solve = high_resolution_clock::now();
     // solution = solve_matrix();
-    for (int i = 0; i < nodes_number; i++)
-    {
-        solution_1[i] = 0.0;
-    }
-
-    int num_iters = 100;
-
-    // iterations of jacobi
-    double *s1 = solution_1;
-    double *s2 = solution_2;
-    double *tmp;
-    for (size_t it = 0; it < num_iters; it++)
-    {
-        // iterate through all the rows of the matrix
-        /*
-        for (size_t i = 0; i < nodes_number; i++)
-        {
-            s2[i] = 1.0 / stencil[4] * (b[i] - 
-                (stencil[0] * s1[indirections[9 * i + 0]] + 
-                 stencil[1] * s1[indirections[9 * i + 1]] + 
-                 stencil[2] * s1[indirections[9 * i + 2]] + 
-                 stencil[3] * s1[indirections[9 * i + 3]] + 
-                 stencil[5] * s1[indirections[9 * i + 5]] + 
-                 stencil[6] * s1[indirections[9 * i + 6]] + 
-                 stencil[7] * s1[indirections[9 * i + 7]] + 
-                 stencil[8] * s1[indirections[9 * i + 8]] ) );
-        }
-        */
-
-        // simple jacobi solver
-        // note Dirichlet BC is implied
-        for (size_t idx_i = 1; idx_i < nodes_number_x - 1; idx_i++)
-        {
-            for (size_t idx_j = 1; idx_j < nodes_number_y - 1; idx_j++)
-            {
-                int i = idx_i * nodes_number_y + idx_j;
-                s2[i] = 1.0 / stencil[4] * (b[i] - (stencil[0] * s1[indirections[9 * i + 0]] + stencil[1] * s1[indirections[9 * i + 1]] + stencil[2] * s1[indirections[9 * i + 2]] + stencil[3] * s1[indirections[9 * i + 3]] + stencil[5] * s1[indirections[9 * i + 5]] + stencil[6] * s1[indirections[9 * i + 6]] + stencil[7] * s1[indirections[9 * i + 7]] + stencil[8] * s1[indirections[9 * i + 8]]));
-            }
-        }
-
-        // swap the buffers
-        tmp = s1;
-        s1 = s2;
-        s2 = tmp;
-    }
+    solve_jacobi(num_iters, stencil, indirections, b, nodes_number,  nodes_number_x, nodes_number_y, solution_1, solution_2);
 
     // Get ending timepoint
     auto stop_solve = high_resolution_clock::now();

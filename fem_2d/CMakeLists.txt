@@ -4,4 +4,4 @@ project(fem_sparse_matrix)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(fem_sparse_matrix fem_sparse_matrix.cpp)
-add_executable(fem_stencil fem_stencil.cpp)
+add_executable(fem_stencil jacobi_solver_stencil.cpp fem_stencil.cpp)
