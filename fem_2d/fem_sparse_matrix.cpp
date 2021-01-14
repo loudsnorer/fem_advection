@@ -3,6 +3,11 @@
 #include <fstream>
 #include <chrono>
 
+// solving Uxx+Uyy = F
+// [K] * [solution] = [b]
+// we are considering Dirichlet BC for simplicity
+// We use sparse striffness matrix.
+
 using namespace std;
 using namespace chrono;
 
@@ -13,7 +18,7 @@ constexpr int nodes_number{nodes_number_x * nodes_number_y};
 
 // #define DBG
 
-// we are considering Dirichlet BC for simplicity
+// BC: 
 /* mesh
 T - T - T - T
 |   |   |   |
@@ -25,7 +30,7 @@ L - B - B - R
 */
 
 /* memory layout for the sparse stiffness matrix:
-size = 9 * nodes_number
+size of sparse matrix = 9 * nodes_number
 9-point stencil -> we have 9 elements per row
 1  1  1  1  1  1  1  1  1 | 2  2  2  2  2  2  2  2  2 | 3  3  3  3  3  3  3  3  3  | ...
 -1 -1 -1 -1 8 -1 -1 -1 -1 | -1 -1 -1 -1 8 -1 -1 -1 -1 | -1 -1 -1 -1 8 -1 -1 -1 -1 | ... 
@@ -69,58 +74,50 @@ void create_sparse_stiffness_matrix(double scalor);
 void create_indirections();
 void create_matrix_b(double *b, double *f, double scalor);
 
+// write the results
 void write_solutions_to_file();
 
 ofstream command_unit;
 string data_filename = "fem_data.csv";
 ofstream data_unit;
 
-//number of points to be calculated for each function
-//TO-DO: implement in a decent way
-constexpr int iter{1};
-
-//pointer to main function values calculated for matrix
-double f_x[nodes_number][iter]{};
-
-//pointer to main function values calculated for matrix in 1D
-double f_xy_2d[nodes_number];
-
+// grid buffers
 double nodes_x[nodes_number];
 double nodes_y[nodes_number];
 
-//b vector
+// buffer for the source function
+double f_xy[nodes_number];
+
+// buffer for b vector
 double b[nodes_number];
 
-//K matrix
-double sparseK[nodes_number * 9]{};
+// stiffness matrix
+double stiffness_matrix[nodes_number * 9]{};
 
 // indirections
 int indirections_m[nodes_number * 9]{};
 int indirections_v[nodes_number * 9]{};
 
-double *solution;
 double solution_1[nodes_number]{};
 double solution_2[nodes_number]{};
 
 int main()
 {
-    //cout << "Hello, World!" << endl;
-
-    create_grid();
-
     // Get starting timepoint
     auto start_generate = high_resolution_clock::now();
+    
+    create_grid();
 
-    create_fxy(f_xy_2d);
+    create_fxy(f_xy);
 
     int scalor_b = 1.0;
-    create_matrix_b(b, f_xy_2d, scalor_b);
+    create_matrix_b(b, f_xy, scalor_b);
 
     int scalor_K = 1.0;
     create_sparse_stiffness_matrix(scalor_K);
     create_indirections();
 
-    cout << "Comparing our results with sin(pi * x)" << endl;
+    // cout << "Comparing our results with sin(pi * x)" << endl;
 
 #ifdef DBG
     cout << "nodex_x: " << endl;
@@ -223,7 +220,7 @@ int main()
             for (size_t idx_j = 1; idx_j < nodes_number_y - 1; idx_j++)
             {
                 int i = idx_i * nodes_number_y + idx_j;
-                s2[i] = 1.0 / sparseK[9 * i + 4] * (b[i] - (sparseK[9 * i + 0] * s1[indirections_v[9 * i + 0]] + sparseK[9 * i + 1] * s1[indirections_v[9 * i + 1]] + sparseK[9 * i + 2] * s1[indirections_v[9 * i + 2]] + sparseK[9 * i + 3] * s1[indirections_v[9 * i + 3]] + sparseK[9 * i + 5] * s1[indirections_v[9 * i + 5]] + sparseK[9 * i + 6] * s1[indirections_v[9 * i + 6]] + sparseK[9 * i + 7] * s1[indirections_v[9 * i + 7]] + sparseK[9 * i + 7] * s1[indirections_v[9 * i + 8]]));
+                s2[i] = 1.0 / stiffness_matrix[9 * i + 4] * (b[i] - (stiffness_matrix[9 * i + 0] * s1[indirections_v[9 * i + 0]] + stiffness_matrix[9 * i + 1] * s1[indirections_v[9 * i + 1]] + stiffness_matrix[9 * i + 2] * s1[indirections_v[9 * i + 2]] + stiffness_matrix[9 * i + 3] * s1[indirections_v[9 * i + 3]] + stiffness_matrix[9 * i + 5] * s1[indirections_v[9 * i + 5]] + stiffness_matrix[9 * i + 6] * s1[indirections_v[9 * i + 6]] + stiffness_matrix[9 * i + 7] * s1[indirections_v[9 * i + 7]] + stiffness_matrix[9 * i + 7] * s1[indirections_v[9 * i + 8]]));
             }
         }
 
@@ -270,7 +267,7 @@ void create_fxy(double *f)
 {
     for (int i = 0; i < nodes_number; i++)
     {
-        f_xy_2d[i] = a_sin_bxy(1.0, PI, nodes_x[i], nodes_y[i]);
+        f_xy[i] = a_sin_bxy(1.0, PI, nodes_x[i], nodes_y[i]);
     }
 }
 
@@ -313,15 +310,15 @@ void create_sparse_stiffness_matrix(double scalor)
 {
     for (int i = 0; i < nodes_number; i++)
     {
-        sparseK[i * 9 + 0] = -1 * scalor;
-        sparseK[i * 9 + 1] = -1 * scalor;
-        sparseK[i * 9 + 2] = -1 * scalor;
-        sparseK[i * 9 + 3] = -1 * scalor;
-        sparseK[i * 9 + 4] = 8 * scalor;
-        sparseK[i * 9 + 5] = -1 * scalor;
-        sparseK[i * 9 + 6] = -1 * scalor;
-        sparseK[i * 9 + 7] = -1 * scalor;
-        sparseK[i * 9 + 8] = -1 * scalor;
+        stiffness_matrix[i * 9 + 0] = -1 * scalor;
+        stiffness_matrix[i * 9 + 1] = -1 * scalor;
+        stiffness_matrix[i * 9 + 2] = -1 * scalor;
+        stiffness_matrix[i * 9 + 3] = -1 * scalor;
+        stiffness_matrix[i * 9 + 4] = 8 * scalor;
+        stiffness_matrix[i * 9 + 5] = -1 * scalor;
+        stiffness_matrix[i * 9 + 6] = -1 * scalor;
+        stiffness_matrix[i * 9 + 7] = -1 * scalor;
+        stiffness_matrix[i * 9 + 8] = -1 * scalor;
     }
 }
 
