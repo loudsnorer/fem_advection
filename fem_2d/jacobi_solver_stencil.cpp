@@ -1,8 +1,8 @@
 #include "jacobi_solver_stencil.h"
 #include <iostream>
 
-void solve_jacobi(int num_iters, double stencil[9], int* indirections, double* b, int nodes_number, int nodes_number_x, int nodes_number_y, double* solution_1, double* solution_2)
-{
+void solve_jacobi(double stencil[stencil_size], int indirections[stencil_size*nodes_number], double b[nodes_number], double solution_1[nodes_number], double solution_2[nodes_number])
+{    
     for (int i = 0; i < nodes_number; i++)
     {
         solution_1[i] = 0.0;
@@ -22,7 +22,16 @@ void solve_jacobi(int num_iters, double stencil[9], int* indirections, double* b
             {
 				#pragma HLS pipeline II=1
                 int i = idx_i * nodes_number_y + idx_j;
-                s2[i] = 1.0 / stencil[4] * (b[i] - (stencil[0] * s1[indirections[9 * i + 0]] + stencil[1] * s1[indirections[9 * i + 1]] + stencil[2] * s1[indirections[9 * i + 2]] + stencil[3] * s1[indirections[9 * i + 3]] + stencil[5] * s1[indirections[9 * i + 5]] + stencil[6] * s1[indirections[9 * i + 6]] + stencil[7] * s1[indirections[9 * i + 7]] + stencil[8] * s1[indirections[9 * i + 8]]));
+                s2[i] = 1.0 / stencil[4] *
+                             (b[i] - 
+                             (stencil[0] * s1[indirections[stencil_size * i + 0]] + 
+                             stencil[1] * s1[indirections[stencil_size * i + 1]] + 
+                             stencil[2] * s1[indirections[stencil_size * i + 2]] + 
+                             stencil[3] * s1[indirections[stencil_size * i + 3]] + 
+                             stencil[5] * s1[indirections[stencil_size * i + 5]] + 
+                             stencil[6] * s1[indirections[stencil_size * i + 6]] + 
+                             stencil[7] * s1[indirections[stencil_size * i + 7]] + 
+                             stencil[8] * s1[indirections[stencil_size * i + 8]]));
             }
         }
 

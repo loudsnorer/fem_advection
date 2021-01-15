@@ -14,11 +14,6 @@
 using namespace std;
 using namespace chrono;
 
-#define PI 3.14159265358979323846
-constexpr int nodes_number_x{8};
-constexpr int nodes_number_y{8};
-constexpr int nodes_number{nodes_number_x * nodes_number_y};
-constexpr int num_iters = 100;
 
 // #define DBG
 
@@ -34,8 +29,8 @@ L - B - B - R
 */
 
 /* memory layout for the sparse stiffness matrix:
-size of sparse matrix = 9 * nodes_number
-9-point stencil -> we have 9 elements per row
+size of sparse matrix = stencil_size * nodes_number
+stencil_size-point stencil -> we have stencil_size elements per row
 1  1  1  1  1  1  1  1  1 | 2  2  2  2  2  2  2  2  2 | 3  3  3  3  3  3  3  3  3  | ...
 -1 -1 -1 -1 8 -1 -1 -1 -1 | -1 -1 -1 -1 8 -1 -1 -1 -1 | -1 -1 -1 -1 8 -1 -1 -1 -1 | ... 
 * */
@@ -96,12 +91,12 @@ double f_xy[nodes_number];
 double b[nodes_number];
 
 // stiffness matrix
-//double stiffness_matrix[nodes_number * 9]{};
+//double stiffness_matrix[nodes_number * stencil_size]{};
 // stencil tensor
-double stencil[9]{};
+double stencil[stencil_size]{};
 
 // indirections
-int indirections[nodes_number * 9]{};
+int indirections[nodes_number * stencil_size]{};
 
 double solution_1[nodes_number]{};
 double solution_2[nodes_number]{};
@@ -121,8 +116,8 @@ int main()
 
     int scalor_K = 1.0;
     // create_sparse_stiffness_matrix(scalor_K);
-    create_stencil(scalor_K); // O(9)
-    create_indirections(); // O(9*N)
+    create_stencil(scalor_K); // O(stencil_size)
+    create_indirections(); // O(stencil_size*N)
 
     // cout << "Comparing our results with sin(pi * x)" << endl;
 
@@ -142,18 +137,18 @@ int main()
     cout << endl;
 
     cout << "stencil: " << endl;
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < stencil_size; i++)
     {
         cout << stencil[i] << " " << endl;
     }
     cout << endl;
 
     cout << "indirections: " << endl;
-    for (int i = 0; i < nodes_number * 9; i++)
+    for (int i = 0; i < nodes_number * stencil_size; i++)
     {
-        if (i % 9 == 0)
+        if (i % stencil_size == 0)
         {
-            cout << "row: ith: " << i / 9 << endl;
+            cout << "row: ith: " << i / stencil_size << endl;
         }
         cout << indirections[i] << " " << endl;
     }
@@ -180,7 +175,7 @@ int main()
     // Get starting timepoint
     auto start_solve = high_resolution_clock::now();
     // solution = solve_matrix();
-    solve_jacobi(num_iters, stencil, indirections, b, nodes_number,  nodes_number_x, nodes_number_y, solution_1, solution_2);
+    solve_jacobi(stencil, indirections, b, solution_1, solution_2);
 
     // Get ending timepoint
     auto stop_solve = high_resolution_clock::now();
@@ -278,15 +273,15 @@ void create_indirections()
 {
     for (int i = 0; i < nodes_number; i++)
     {
-        indirections[i * 9 + 0] = i + -1 - nodes_number_x;
-        indirections[i * 9 + 1] = i + 0 - nodes_number_x;
-        indirections[i * 9 + 2] = i + 1 - nodes_number_x;
-        indirections[i * 9 + 3] = i + -1;
-        indirections[i * 9 + 4] = i + 0;
-        indirections[i * 9 + 5] = i + 1;
-        indirections[i * 9 + 6] = i + -1 + nodes_number_x;
-        indirections[i * 9 + 7] = i + 0 + nodes_number_x;
-        indirections[i * 9 + 8] = i + 1 + nodes_number_x;
+        indirections[i * stencil_size + 0] = i + -1 - nodes_number_x;
+        indirections[i * stencil_size + 1] = i + 0 - nodes_number_x;
+        indirections[i * stencil_size + 2] = i + 1 - nodes_number_x;
+        indirections[i * stencil_size + 3] = i + -1;
+        indirections[i * stencil_size + 4] = i + 0;
+        indirections[i * stencil_size + 5] = i + 1;
+        indirections[i * stencil_size + 6] = i + -1 + nodes_number_x;
+        indirections[i * stencil_size + 7] = i + 0 + nodes_number_x;
+        indirections[i * stencil_size + 8] = i + 1 + nodes_number_x;
     }
 }
 
