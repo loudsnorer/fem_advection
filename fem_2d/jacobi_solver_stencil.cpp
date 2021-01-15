@@ -20,6 +20,7 @@ void solve_jacobi(int num_iters, double stencil[9], int* indirections, double* b
         {
             for (size_t idx_j = 1; idx_j < nodes_number_y - 1; idx_j++)
             {
+				#pragma HLS PIPLINE II=1
                 int i = idx_i * nodes_number_y + idx_j;
                 s2[i] = 1.0 / stencil[4] * (b[i] - (stencil[0] * s1[indirections[9 * i + 0]] + stencil[1] * s1[indirections[9 * i + 1]] + stencil[2] * s1[indirections[9 * i + 2]] + stencil[3] * s1[indirections[9 * i + 3]] + stencil[5] * s1[indirections[9 * i + 5]] + stencil[6] * s1[indirections[9 * i + 6]] + stencil[7] * s1[indirections[9 * i + 7]] + stencil[8] * s1[indirections[9 * i + 8]]));
             }
