@@ -175,8 +175,7 @@ int main()
     // Get starting timepoint
     auto start_solve = high_resolution_clock::now();
     // solution = solve_matrix();
-    //solve_jacobi(stencil, indirections, b, solution_1, solution_2);
-    entry(stencil, indirections, b, solution_1, solution_2);
+    solve_jacobi(stencil, indirections, b, solution_1, solution_2);
 
     // Get ending timepoint
     auto stop_solve = high_resolution_clock::now();
